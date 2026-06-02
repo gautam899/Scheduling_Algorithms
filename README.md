@@ -1,21 +1,15 @@
-#
+# Scheduling Algorithms
 
-1. Task -> Each Task has priority, CPU burst(time for which the task will hold the CPU)
+- Scheduling Algorithms are used by the CPU to decide which process in the ready queue should be allocated the CPU's core. 
 
-## Scheduling Algorithms to Implement
+## Scheduling Criteria
 
-1. FCFS-> First Come, First Serve
+1. CPU Utilization: This parameter represents the percentage of time the a process was utitilizing the CPU.
 
-2. Shortest Job First
+2. Throughput: The number of processes excuted per time unit.
 
-3. Priority Scheduling
+3. Turnaround Time: The interval from the time of submission of the process to the time of completion is the Turnaround Time.
 
-4. Round Robin (RR) Scheduling, where each task is run for a time quantum
+4. Waiting Time: Waiting Time is the sum of periods spent in the ready queue.
 
-5. Priority With Round Robin -> Schedule Task in priority and uses Round Robin for tasks with same priority.
-
-## 
-
-1. Priorty Ranges from 1->10
-
-2. Time Quantum 10 millisecond
+5. Reponse Time: The time b/w the submission of the process till it start responding.

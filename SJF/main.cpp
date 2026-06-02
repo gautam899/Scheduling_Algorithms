@@ -6,9 +6,11 @@ void SJF::schedule(std::vector<Task> &processes, SchedulerStats &stats)
 {
     int num_process = processes.size();
 
-    // Sort as per the cpu_burst. Shortest burst first.
     std::sort(processes.begin(), processes.end(), [](Task &a, Task &b)
-              { return a.cpu_burst < b.cpu_burst; });
+              { if(a.cpu_burst != b.cpu_burst) {
+                    return a.cpu_burst < b.cpu_burst;
+                }
+                return a.arrival_time < b.arrival_time; });
 
     for (size_t i = 0; i < (size_t)num_process; i++)
     {
