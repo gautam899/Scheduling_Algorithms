@@ -1,36 +1,80 @@
 #include <iostream>
 #include <algorithm>
+#include <limits.h>
 #include "sjf.hpp"
 
 void SJF::schedule(std::vector<Task> &processes, SchedulerStats &stats)
 {
     int num_process = processes.size();
+    std::vector<int> isComplete(num_process, 0);
+    // SJF does not know about the next processes so we cannot sort them before hand.
+    int time = 0;
+    int completed = 0; // Number of processes completed
+    int prev_completion_time = 0;
 
-    std::sort(processes.begin(), processes.end(), [](Task &a, Task &b)
-              { if(a.cpu_burst != b.cpu_burst) {
-                    return a.cpu_burst < b.cpu_burst;
-                }
-                return a.arrival_time < b.arrival_time; });
-
-    for (size_t i = 0; i < (size_t)num_process; i++)
+    while (completed != num_process)
     {
-        processes[i].stats.start_time = (i == 0) ? processes[i].arrival_time : std::max(processes[i - 1].stats.completion_time, processes[i].arrival_time);
-        processes[i].stats.completion_time = processes[i].stats.start_time + processes[i].cpu_burst;
-        processes[i].stats.response_time = processes[i].stats.start_time - processes[i].arrival_time;
-        processes[i].stats.turnaround_time = processes[i].stats.completion_time - processes[i].arrival_time;
-        processes[i].stats.waiting_time = processes[i].stats.turnaround_time - processes[i].arrival_time;
+        int min_burst = INT_MAX;
+        int curr_process = -1; // Process to execute
 
-        stats.total_response_time += processes[i].stats.response_time;
-        stats.total_turnaround_time += processes[i].stats.turnaround_time;
-        stats.total_waiting_time += processes[i].stats.waiting_time;
-        stats.total_idle_time += (i == 0) ? processes[i].arrival_time : (processes[i].stats.start_time - processes[i - 1].stats.completion_time);
+        // Find the next minimum CPU burst
+        for (size_t i = 0; i < num_process; i++)
+        {
+            if (processes[i].arrival_time <= time && isComplete[i] == 0)
+            {
+                if (processes[i].cpu_burst < min_burst)
+                {
+                    min_burst = processes[i].cpu_burst;
+                    curr_process = i;
+                }
+
+                // If the cpu_burst time is the same for two processes, FCFS should be used as a tie breaker.
+                if (processes[i].cpu_burst == min_burst && processes[i].arrival_time < processes[curr_process].arrival_time)
+                {
+                    min_burst = processes[i].cpu_burst;
+                    curr_process = i;
+                }
+            }
+        }
+
+        if (curr_process != -1)
+        {
+            std::cout << "Executing Process: " << curr_process << std::endl;
+            processes[curr_process].stats.start_time = time;
+            processes[curr_process].stats.completion_time = processes[curr_process].stats.start_time + processes[curr_process].cpu_burst;
+            processes[curr_process].stats.response_time = processes[curr_process].stats.start_time - processes[curr_process].arrival_time;
+            processes[curr_process].stats.turnaround_time = processes[curr_process].stats.completion_time - processes[curr_process].arrival_time;
+            processes[curr_process].stats.waiting_time = processes[curr_process].stats.turnaround_time - processes[curr_process].cpu_burst;
+
+            stats.total_response_time += processes[curr_process].stats.response_time;
+            stats.total_turnaround_time += processes[curr_process].stats.turnaround_time;
+            stats.total_waiting_time += processes[curr_process].stats.waiting_time;
+            stats.total_idle_time += processes[curr_process].stats.start_time - prev_completion_time;
+
+            isComplete[curr_process] = 1;
+            time = processes[curr_process].stats.completion_time;
+            prev_completion_time = time;
+            completed++;
+        }
+        else
+        {
+            time++;
+        }
+    }
+
+    int max_completion_time = -1;
+    int min_arrival_time = INT_MAX;
+    for (size_t i = 0; i < num_process; i++)
+    {
+        max_completion_time = std::max(max_completion_time, processes[i].stats.completion_time);
+        min_arrival_time = std::min(min_arrival_time, processes[i].arrival_time);
     }
 
     stats.av_responseTime = (float)stats.total_response_time / num_process;
     stats.av_turnaroundTime = (float)stats.total_turnaround_time / num_process;
     stats.av_waitingTime = (float)stats.total_waiting_time / num_process;
-    stats.cpu_utilization = (float)(processes[num_process - 1].stats.completion_time - stats.total_idle_time) / processes[num_process - 1].stats.completion_time * 100;
-    stats.throughput = (float)num_process / (processes[num_process - 1].stats.completion_time - processes[0].arrival_time);
+    stats.cpu_utilization = (float)(max_completion_time - stats.total_idle_time) / max_completion_time * 100;
+    stats.throughput = (float)num_process / (max_completion_time - min_arrival_time);
 }
 
 void SJF::printResults(std::vector<Task> &processes, SchedulerStats &stats)
@@ -74,7 +118,7 @@ int main()
         std::cin >> processes[i].arrival_time;
         std::cout << "Enter the CPU burst time for the Process " << i + 1 << " : -> ";
         std::cin >> processes[i].cpu_burst;
-        processes[i].pid += 1;
+        processes[i].pid = i + 1;
     }
 
     SJF shorted_job_first;
